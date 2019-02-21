@@ -21,6 +21,13 @@
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="headers\Shader.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources\shaders\core.frag" />
+    <None Include="resources\shaders\core.vs" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{37F5C880-D87D-4A62-AFC9-150D4D1DEA6B}</ProjectGuid>
