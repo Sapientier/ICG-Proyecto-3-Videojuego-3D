@@ -8,8 +8,6 @@
 #include <iostream>
 #include <GL/glew.h>
 
-using namespace std;
-
 class Shader
 {
 public:
@@ -18,19 +16,19 @@ public:
 	Shader(const GLchar *vertexPath, const GLchar *fragmentPath)
 	{
 		// 1. Recuperamos el código fuente del vertex / fragment de la ruta del archivo
-		string vertexCode;
-		string fragmentCode;
-		ifstream vShaderFile;
-		ifstream fShaderFile;
+		std::string vertexCode;
+		std::string fragmentCode;
+		std::ifstream vShaderFile;
+		std::ifstream fShaderFile;
 		// asegura que los objetos ifstream pueden lanzar excepciones
-		vShaderFile.exceptions(ifstream::badbit);
-		fShaderFile.exceptions(ifstream::badbit);
+		vShaderFile.exceptions(std::ifstream::badbit);
+		fShaderFile.exceptions(std::ifstream::badbit);
 		try
 		{
 			// Abrimos los archivos
 			vShaderFile.open(vertexPath);
 			fShaderFile.open(fragmentPath);
-			stringstream vShaderStream, fShaderStream;
+			std::stringstream vShaderStream, fShaderStream;
 			// Leemos contenido del búfer del archivo en secuencias
 			vShaderStream << vShaderFile.rdbuf();
 			fShaderStream << fShaderFile.rdbuf();
@@ -41,9 +39,9 @@ public:
 			vertexCode = vShaderStream.str();
 			fragmentCode = fShaderStream.str();
 		}
-		catch (ifstream::failure e)
+		catch (std::ifstream::failure e)
 		{
-			cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << endl;
+			std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
 		}
 		const GLchar *vShaderCode = vertexCode.c_str();
 		const GLchar *fShaderCode = fragmentCode.c_str();
@@ -60,7 +58,7 @@ public:
 		if (!success)
 		{
 			glGetShaderInfoLog(vertex, 512, NULL, infoLog);
-			cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << endl;
+			std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		// Fragment Shader
 		fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -71,7 +69,7 @@ public:
 		if (!success)
 		{
 			glGetShaderInfoLog(fragment, 512, NULL, infoLog);
-			cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << endl;
+			std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
 		}
 		// Shader Program
 		this->Program = glCreateProgram();
@@ -83,7 +81,7 @@ public:
 		if (!success)
 		{
 			glGetProgramInfoLog(this->Program, 512, NULL, infoLog);
-			cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << endl;
+			std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
 		}
 		// Elimine los shaders ya que están vinculados a nuestro programa y ya no son necesarios
 		glDeleteShader(vertex);
