@@ -3,19 +3,21 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <SOIL2/SOIL2.h>
-#include <GLM/glm.hpp>
-#include <GLM/gtc/matrix_transform.hpp>
-#include <GLM/gtc/type_ptr.hpp>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <Shader.h>
 #include <Camera.h>
+#include <Model.h>
+#include <Texture.h>
 
 // Dimensiones de la Ventana
 const GLint WIDTH = 1200, HEIGHT = 700;
 int SCREEN_WIDTH, SCREEN_HEIGHT;
 
 // Funciones prototipo
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode);
-void ScrollCallback(GLFWwindow *window, double xOffset, double yOffset);
 void MouseCallback(GLFWwindow *window, double xPos, double yPos);
 void DoMovement();
 
@@ -26,8 +28,12 @@ GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
 bool firstMouse = true;
 
-GLfloat deltaTime = 0.0f;
-GLfloat lastFrame = 0.0f;
+// Atributos de luz
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+// Deltatime
+GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
+GLfloat lastFrame = 0.0f;  	// Time of last frame
 
 // Funcion Principal, desde aqui la aplicacion inicia y mantiene un ciclo
 int main() {
@@ -40,7 +46,7 @@ int main() {
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
 
 	// Crea un objeto GLFWwindow que usaremos para funciones de GLFW
 	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "Videojuego-3D", nullptr, nullptr);
@@ -53,13 +59,12 @@ int main() {
 	}
 
 	glfwMakeContextCurrent(window);
-
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 	glfwGetFramebufferSize(window, &SCREEN_WIDTH, &SCREEN_HEIGHT);
 
 	// Establecer las funciones de devolución de llamada requeridas
 	glfwSetKeyCallback(window, KeyCallback);
 	glfwSetCursorPosCallback(window, MouseCallback);
-	glfwSetScrollCallback(window, ScrollCallback);
 
 	// Opciones, elimina el cursor del mouse para una experiencia más inmersiva.
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -79,17 +84,20 @@ int main() {
 
 	// Habilitamos el Z-Buffer en OpenGL
 	glEnable(GL_DEPTH_TEST);
-
-	// Habilita soporte alpha
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	// Construye y compila nuestro programa shader.
-	Shader ourShader("resources/shaders/core.vs", "resources/shaders/core.frag");
+	// Setup and compile our shaders
+	Shader shader("resources/shaders/cube.vs", "resources/shaders/cube.frag");
+	Shader modelShader("resources/shaders/modelLoading.vs", "resources/shaders/modelLoading.frag");
+	Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.frag");
 
-	// Configurar datos de vértice (y búfer(es)) y punteros de atributo
-	// Uso de proyeccion perspectiva
-	GLfloat vertices[] = {
+	// Load models
+	Model ourModel("resources/models/nanosuit.obj");
+
+	GLfloat cubeVertices[] =
+	{
+		// Positions          // Texture Coords
 		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 		0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
 		0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
@@ -133,133 +141,181 @@ int main() {
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
 
-	glm::vec3 cubePositions[] =
-	{
-		glm::vec3(0.0f, 0.0f, 0.0f),
-		glm::vec3(2.0f, 5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f, 3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f, 2.0f, -2.5f),
-		glm::vec3(1.5f, 0.2f, -1.5f),
-		glm::vec3(-1.3f, 1.0f, -1.5f)
+	GLfloat skyboxVertices[] = {
+		// Positions
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
 	};
 
-	GLuint VBO, VAO;
-	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	// Enlaza el objeto arreglo de vertices primero, luego enlaza y asigna los buffer y punteros.
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	// Atributo de posicion
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)0);
+	// Setup cube VAO
+	GLuint cubeVAO, cubeVBO;
+	glGenVertexArrays(1, &cubeVAO);
+	glGenBuffers(1, &cubeVBO);
+	glBindVertexArray(cubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
-	// Atributo de coordenada textura
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
-	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid *)(3 * sizeof(GLfloat)));
+	glBindVertexArray(0);
 
-	glBindVertexArray(0); // Desenlazar VAO 
+	// Setup skybox VAO
+	GLuint skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid *)0);
+	glBindVertexArray(0);
 
-	 // Carga y crear la textura
-	GLuint texture;
-	// --== TEXTURAS == --
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture); // Todas las próximas operaciones GL_TEXTURE_2D ahora tienen efecto en nuestro objeto de textura
-	// Inicializamos los parametros de textura
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// Inicializamos el filtrado de textura
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	// Carga, crea la textura y genera mipmaps
-	int width, height;
-	unsigned char *image = SOIL_load_image("resources/images/textura2.png", &width, &height, 0, SOIL_LOAD_RGBA);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-	glGenerateMipmap(GL_TEXTURE_2D);
-	SOIL_free_image_data(image);
-	glBindTexture(GL_TEXTURE_2D, 0); // Desenlazamos la textura cuando haya terminado, para no arruinar nuestra textura accidentalmente.
+	// Load textures
+	GLuint cubeTexture = TextureLoading::LoadTexture("resources/images/container2.png");
 
-	// Ciclo del juego
-	while (!glfwWindowShouldClose(window)) {
-		// Asignamos el tiempo por cuadros
+	// Cubemap (Skybox)
+	vector<const GLchar*> faces;
+	faces.push_back("resources/images/skybox/right.jpg");
+	faces.push_back("resources/images/skybox/left.jpg");
+	faces.push_back("resources/images/skybox/top.jpg");
+	faces.push_back("resources/images/skybox/bottom.jpg");
+	faces.push_back("resources/images/skybox/front.jpg");
+	faces.push_back("resources/images/skybox/back.jpg");
+	GLuint cubemapTexture = TextureLoading::LoadCubemap(faces);
+
+	glm::mat4 projection = glm::perspective(camera.GetZoom(), (float)SCREEN_WIDTH / (float)SCREEN_HEIGHT, 0.1f, 1000.0f);
+
+	// Game loop
+	while (!glfwWindowShouldClose(window))
+	{
+		// Set frame time
 		GLfloat currentFrame = glfwGetTime();
 		deltaTime = currentFrame - lastFrame;
 		lastFrame = currentFrame;
 
-		// Eventos de revision, llamada y entrada/salida
+		// Check and call events
 		glfwPollEvents();
 		DoMovement();
 
-		// renderizado
-		// Limpiamos el bufder de color
-		glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+		// Clear the colorbuffer
+		glClearColor(0.05f, 0.05f, 0.05f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Activamos el Shader
-		ourShader.Use();
+		glm::mat4 model(1.0f);
+		glm::mat4 view = camera.GetViewMatrix();
 
-		// Enlazamos las texturas usando unidades de textura
+		// Draw our Cube
+		shader.Use();
+
+		// Bind Textures using texture units
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glUniform1i(glGetUniformLocation(ourShader.Program, "ourTexture1"), 0);
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		glUniform1i(glGetUniformLocation(shader.Program, "texture1"), 0);
 
-		// Creamos las transformaciones
-		glm::mat4 projection(1.0f);
-		projection = glm::perspective(camera.GetZoom(), (GLfloat)SCREEN_WIDTH / (GLfloat)SCREEN_HEIGHT, 0.1f, 1000.0f);
+		// Get the uniform locations
+		GLint modelLoc = glGetUniformLocation(shader.Program, "model");
+		GLint viewLoc = glGetUniformLocation(shader.Program, "view");
+		GLint projLoc = glGetUniformLocation(shader.Program, "projection");
 
-		// Creamos la transformacion de la camara
-		glm::mat4 view(1.0f);
-		view = camera.GetViewMatrix();
-
-		// Obtenemos su ubicacion local 
-		GLint modelLoc = glGetUniformLocation(ourShader.Program, "model");
-		GLint viewLoc = glGetUniformLocation(ourShader.Program, "view");
-		GLint projLoc = glGetUniformLocation(ourShader.Program, "projection");
-		// Los pasamos a los Shaders
+		// Pass the matrices to the shader
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
-		// Dibuja el contenedor
-		glBindVertexArray(VAO);
+		glBindVertexArray(cubeVAO);
 
-		for (GLuint i = 0; i < 10; i++)
-		{
-			// Calculate the model matrix for each object and pass it to shader before drawing
-			glm::mat4 model(1.0f);
-			model = glm::translate(model, cubePositions[i]);
-			GLfloat angle = 20.0f * i;
-			model = glm::rotate(model, angle, glm::vec3(1.0f, 0.3f, 0.5f));
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
+		// Calculate the model matrix for each object and pass it to shader before drawing
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 
-		// Dibujado OPENGL
+		// Draw our Model
+		modelShader.Use();
+
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		// Draw the loaded model
+		model = glm::translate(model, glm::vec3(0.0f, -1.75f, 0.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.2f, 0.2f, 0.2f));	// It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		//ourModel.Draw(modelShader);
+
+		// Draw skybox as last
+		glDepthFunc(GL_LEQUAL);  // Change depth function so depth test passes when values are equal to depth buffer's content
+		skyboxShader.Use();
+		view = glm::mat4(glm::mat3(camera.GetViewMatrix()));	// Remove any translation component of the view matrix
+
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+
+		// skybox cube
+		glBindVertexArray(skyboxVAO);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glDepthFunc(GL_LESS); // Set depth function back to default
+
+		// Swap the buffers
 		glfwSwapBuffers(window);
 	}
 
-	// Rechazar adecuadamente todos los recursos una vez que hayan superado su propósito
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-
-	// Termina GLFW, borrando todos los recursos asignados por GLFW.
 	glfwTerminate();
-
-	return EXIT_SUCCESS;
+	return 0;
 }
 
-// Mueve / altera las posiciones de la cámara en función de la entrada del usuario
+// glfw: whenever the window size changed (by OS or user resize) this callback function executes
+// ---------------------------------------------------------------------------------------------
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	// make sure the viewport matches the new window dimensions; note that width and 
+	// height will be significantly larger than specified on retina displays.
+	glViewport(0, 0, width, height);
+}
+
+// Moves/alters the camera positions based on user input
 void DoMovement()
 {
-	// Controles de camara
+	// Camera controls
 	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP])
 	{
 		camera.ProcessKeyboard(FORWARD, deltaTime);
@@ -281,10 +337,10 @@ void DoMovement()
 	}
 }
 
-// Se llama cada vez que se presiona / suelta una tecla a través de GLFW
+// Is called whenever a key is pressed/released via GLFW
 void KeyCallback(GLFWwindow *window, int key, int scancode, int action, int mode)
 {
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	if (GLFW_KEY_ESCAPE == key && GLFW_PRESS == action)
 	{
 		glfwSetWindowShouldClose(window, GL_TRUE);
 	}
@@ -312,15 +368,10 @@ void MouseCallback(GLFWwindow *window, double xPos, double yPos)
 	}
 
 	GLfloat xOffset = xPos - lastX;
-	GLfloat yOffset = lastY - yPos;  // Invertido ya que las coordenadas y van de abajo hacia la izquierda
+	GLfloat yOffset = lastY - yPos;  // Reversed since y-coordinates go from bottom to left
 
 	lastX = xPos;
 	lastY = yPos;
 
 	camera.ProcessMouseMovement(xOffset, yOffset);
-}
-
-void ScrollCallback(GLFWwindow *window, double xOffset, double yOffset)
-{
-	camera.ProcessMouseScroll(yOffset);
 }

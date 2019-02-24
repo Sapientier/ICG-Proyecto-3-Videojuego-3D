@@ -106,25 +106,22 @@ public:
 	// Procesa la entrada recibida de un evento de la rueda de desplazamiento del ratón. Solo requiere entrada en el eje vertical de la rueda
 	void ProcessMouseScroll(GLfloat yOffset)
 	{
-		if (this->zoom >= 1.0f && this->zoom <= 45.0f)
-		{
-			this->zoom -= yOffset;
-		}
-
-		if (this->zoom <= 1.0f)
-		{
-			this->zoom = 1.0f;
-		}
-
-		if (this->zoom >= 45.0f)
-		{
-			this->zoom = 45.0f;
-		}
+		
 	}
 
 	GLfloat GetZoom()
 	{
 		return this->zoom;
+	}
+
+	glm::vec3 GetPosition()
+	{
+		return this->position;
+	}
+
+	glm::vec3 GetFront()
+	{
+		return this->front;
 	}
 
 private:

@@ -26,26 +26,74 @@
     <ClInclude Include="headers\Camera.h">
       <Filter>Archivos de encabezado</Filter>
     </ClInclude>
+    <ClInclude Include="headers\Mesh.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Model.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
+    <ClInclude Include="headers\Texture.h">
+      <Filter>Archivos de encabezado</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources\shaders\core.vs">
+    <None Include="resources\shaders\lighting.frag">
       <Filter>Archivos de recursos</Filter>
     </None>
-    <None Include="resources\shaders\core.frag">
+    <None Include="resources\shaders\lighting.vs">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\lamp.vs">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\lamp.frag">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\modelLoading.frag">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\modelLoading.vs">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\skybox.vs">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\skybox.frag">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\cube.vs">
+      <Filter>Archivos de recursos</Filter>
+    </None>
+    <None Include="resources\shaders\cube.frag">
       <Filter>Archivos de recursos</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Image Include="resources\images\textura1.jpg">
-      <Filter>Archivos de recursos</Filter>
-    </Image>
-    <Image Include="resources\images\textura2.png">
-      <Filter>Archivos de recursos</Filter>
-    </Image>
     <Image Include="resources\images\textura3.png">
       <Filter>Archivos de recursos</Filter>
     </Image>
-    <Image Include="resources\images\textura4.jpg">
+    <Image Include="resources\images\container2.png">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\container2_specular.png">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\back.jpg">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\bottom.jpg">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\front.jpg">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\left.jpg">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\right.jpg">
+      <Filter>Archivos de recursos</Filter>
+    </Image>
+    <Image Include="resources\images\skybox\top.jpg">
       <Filter>Archivos de recursos</Filter>
     </Image>
   </ItemGroup>
